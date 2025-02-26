@@ -1,0 +1,41 @@
+services: # サービスの定義開始
+  l11dev-nginx: # -------------------- webサーバーのサービス
+    container_name: "l11dev-nginx" # -- コンテナの名前を指定
+    build: # -------------------------- Dockerfileの場所を指定
+      context: ./docker/nginx
+    depends_on  : # ------------------- 依存するサービスを指定
+      - l11dev-app # -------------------- l11dev-appサービスに依存
+    ports: # -------------------------- ポートのマッピングを指定
+      - 80:80 # ------------------------- ホストのポート80をコンテナのポート80にマッピング
+    volumes: # ------------------------ ボリュームのマウントを指定
+      - ./:/src # ----------------------- ホストの現在のディレクトリをコンテナの/srcに共有（プロジェクトのルートディレクトリ）
+
+  l11dev-app: # ---------------------- PHPアプリケーションのサービス
+    container_name: "l11dev-app"
+    build:
+      context: ./docker/php
+    depends_on: # --------------------- 依存するサービスを指定
+      - l11dev-mysql # ------------------ l11dev-mysqlサービスに依存
+    volumes: # ------------------------ ボリュームのマウントを指定
+      - ./:/src # ----------------------- ホストの現在のディレクトリをコンテナの/srcに共有
+      - /src/node_modules # ------------- node_modulesディレクトリをボリュームとしてマウント
+      - /src/vendor # ------------------- vendorディレクトリをボリュームとしてマウント
+      - ./docker/php/php.ini:/usr/local/etc/php/php.ini # カスタムPHP設定ファイルをマウント
+
+  l11dev-mysql: # -------------------- MySQLデータベースのサービス
+    image: mysql:8.0.37 # ------------- 使用するMySQLのイメージとバージョンを指定
+    command: --max_allowed_packet=32505856 # MySQLの設定をカスタマイズ
+    container_name: "l11dev-mysql"
+    volumes:
+      - ./docker/mysql:/var/lib/mysql
+    environment: # -------------------- 環境変数を指定
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=l11dev
+    ports:
+      - 3306:3306
+
+  l11dev-redis: # -------------------- Redisのサービス
+    image: redis:alpine # ------------- 使用するRedisのイメージとバージョンを指定
+    container_name: "l11dev-redis"
+    ports:
+      - 16379:6379
